@@ -1,0 +1,8 @@
+{
+  "name": "Default RethinkDB Configuration",
+  "description": "This example will connect to a default RethinkDB instance that does not have authentication configured.",
+  "config": {
+    "rethinkdb.connection.hostname": "localhost",
+    "rethinkdb.database": "testing"
+  }
+}
