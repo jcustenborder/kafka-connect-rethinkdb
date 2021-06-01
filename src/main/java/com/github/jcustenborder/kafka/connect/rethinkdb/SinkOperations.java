@@ -17,7 +17,6 @@ package com.github.jcustenborder.kafka.connect.rethinkdb;
 
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
-import com.rethinkdb.RethinkDB;
 import com.rethinkdb.gen.ast.Delete;
 import com.rethinkdb.gen.ast.Insert;
 import com.rethinkdb.model.MapObject;

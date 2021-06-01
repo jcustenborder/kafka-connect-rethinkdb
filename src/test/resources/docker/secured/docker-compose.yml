@@ -1,0 +1,14 @@
+version: "3"
+services:
+  rethink:
+    image: rethinkdb:2.4.0
+    ports:
+      - "28015:28015"
+    volumes:
+    - "./rethinkdb.conf:/etc/rethinkdb/rethinkdb.conf:ro"
+    command:
+      - "rethinkdb"
+      - "--bind"
+      - "all"
+      - "--initial-password"
+      - "oasbdfgibadfgibasdfa"

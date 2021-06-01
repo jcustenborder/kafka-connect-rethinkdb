@@ -25,14 +25,14 @@ class RethinkDBSinkConnectorConfig extends RethinkDBConnectorConfig {
 
 
   public static final String OFFSETS_TABLE_CONF = "offsets.table";
-  static final String OFFSETS_TABLE_DOC = "offsets.table";
+  static final String OFFSETS_TABLE_DOC = "The table within the database that will be used to store the offsets for each batch of data written.";
   public static final String OFFSETS_TABLE_DEFAULT = "_connect_offsets";
 
   public static final String TABLE_CREATE_ENABLED_CONF = "table.creation.enabled";
-  static final String TABLE_CREATE_ENABLED_DOC = "table.creation.enabled";
+  static final String TABLE_CREATE_ENABLED_DOC = "Flag to determine if the table should be created if it does not exist.";
 
   public static final String DATABASE_CREATION_ENABLED_CONF = "database.creation.enabled";
-  static final String DATABASE_CREATION_ENABLED_DOC = "database.creation.enabled";
+  static final String DATABASE_CREATION_ENABLED_DOC = "Flag to determine if the database should be created if it does not exist.";
 
   public final String offsetsTable;
   public final boolean tableCreationEnabled;

@@ -16,7 +16,9 @@
 package com.github.jcustenborder.kafka.connect.rethinkdb;
 
 import com.github.jcustenborder.kafka.connect.utils.VersionUtil;
+import com.github.jcustenborder.kafka.connect.utils.config.Description;
 import com.github.jcustenborder.kafka.connect.utils.config.TaskConfigs;
+import com.github.jcustenborder.kafka.connect.utils.config.Title;
 import com.rethinkdb.RethinkDB;
 import com.rethinkdb.gen.ast.DbCreate;
 import com.rethinkdb.gen.ast.DbList;
@@ -32,6 +34,8 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Map;
 
+@Title("RethinkDB Sink Connector")
+@Description("This connector is used to persist data from Kafka to RethinkDB.")
 public class RethinkDBSinkConnector extends SinkConnector {
   private static final Logger log = LoggerFactory.getLogger(RethinkDBSinkConnector.class);
   Map<String, String> settings;

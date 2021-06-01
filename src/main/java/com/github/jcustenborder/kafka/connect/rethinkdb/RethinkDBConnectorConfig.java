@@ -31,17 +31,35 @@ class RethinkDBConnectorConfig extends AbstractConfig {
   public static final String CONNECTION_HOSTNAME_CONF = "rethinkdb.connection.hostname";
   public static final String CONNECTION_PORT_CONF = "rethinkdb.connection.port";
   public static final String DATABASE_CONF = "rethinkdb.database";
-  private static final String CONNECTION_HOSTNAME_DOC = "rethinkdb.connection.hostname";
-  private static final String CONNECTION_PORT_DOC = "rethinkdb.connection.port";
-  private static final String DATABASE_DOC = "rethinkdb.database";
+  public static final String USERNAME_CONF = "rethinkdb.username";
+  public static final String PASSWORD_CONF = "rethinkdb.password";
+
+
+  private static final String CONNECTION_HOSTNAME_DOC = "The hostname to connect to.";
+  private static final String CONNECTION_PORT_DOC = "The port on the RethinkDB host to connect to.";
+  private static final String DATABASE_DOC = "The database to use.";
+  private static final String USERNAME_DOC = "The username to connect to the RethinkDB host with.";
+  private static final String PASSWORD_DOC = "The password to connect to the RethinkDB host with.";
+
+
   public final String hostname;
   public final int port;
   public final String database;
+  public final String username;
+  public final String password;
+
   public RethinkDBConnectorConfig(ConfigDef definition, Map<?, ?> originals) {
     super(definition, originals);
     this.hostname = getString(CONNECTION_HOSTNAME_CONF);
     this.port = getInt(CONNECTION_PORT_CONF);
     this.database = getString(DATABASE_CONF);
+    String username = getString(USERNAME_CONF);
+    this.username = (null != username && !username.isEmpty()) ? username : null;
+    if (null != this.username) {
+      this.password = getPassword(PASSWORD_CONF).value();
+    } else {
+      this.password = null;
+    }
   }
 
   public static ConfigDef config() {
@@ -63,13 +81,31 @@ class RethinkDBConnectorConfig extends AbstractConfig {
                 .documentation(DATABASE_DOC)
                 .importance(Importance.HIGH)
                 .build()
+        ).define(
+            ConfigKeyBuilder.of(GROUP_CONNECTION, USERNAME_CONF, Type.STRING)
+                .documentation(USERNAME_DOC)
+                .importance(Importance.HIGH)
+                .defaultValue("")
+                .build()
+        ).define(
+            ConfigKeyBuilder.of(GROUP_CONNECTION, PASSWORD_CONF, Type.PASSWORD)
+                .documentation(PASSWORD_DOC)
+                .importance(Importance.HIGH)
+                .defaultValue("")
+                .build()
         );
   }
 
   public Connection connection() {
-    return RethinkDB.r.connection()
+    Connection.Builder builder = RethinkDB.r.connection()
         .hostname(this.hostname)
-        .port(this.port)
-        .connect();
+        .port(this.port);
+
+    if (null != this.username) {
+      builder = builder.user(this.username, this.password);
+    }
+
+
+    return builder.connect();
   }
 }

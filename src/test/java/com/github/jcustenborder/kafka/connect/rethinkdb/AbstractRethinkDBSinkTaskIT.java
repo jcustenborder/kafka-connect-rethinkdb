@@ -15,7 +15,6 @@
  */
 package com.github.jcustenborder.kafka.connect.rethinkdb;
 
-import com.github.jcustenborder.docker.junit5.Compose;
 import com.github.jcustenborder.docker.junit5.Port;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.LinkedListMultimap;
@@ -45,6 +44,7 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +55,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import static com.github.jcustenborder.kafka.connect.utils.SinkRecordHelper.write;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -62,9 +63,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@Compose(dockerComposePath = "src/test/resources/docker/anonymous/docker-compose.yml")
-public class RethinkDBSinkTaskIT {
-  private static final Logger log = LoggerFactory.getLogger(RethinkDBSinkTaskIT.class);
+
+public abstract class AbstractRethinkDBSinkTaskIT {
+  private static final Logger log = LoggerFactory.getLogger(AbstractRethinkDBSinkTaskIT.class);
+
+  protected final String username;
+  protected final String password;
 
   protected RethinkDBSinkTask task;
   protected SinkTaskContext context = mock(SinkTaskContext.class);
@@ -72,10 +76,26 @@ public class RethinkDBSinkTaskIT {
   protected Connection connection;
   protected Db database;
   protected Table offsetsTable;
+  protected Map<String, String> settings;
+
+  protected AbstractRethinkDBSinkTaskIT() {
+    this(null, null);
+  }
+
+  protected AbstractRethinkDBSinkTaskIT(String username, String password) {
+    this.username = username;
+    this.password = password;
+  }
+
 
   @AfterEach
   public void after() {
     this.connection.close();
+    this.task.stop();
+  }
+
+  protected Map<String, String> settings(Map<String, String> settings) {
+    return settings;
   }
 
   @BeforeEach
@@ -96,6 +116,15 @@ public class RethinkDBSinkTaskIT {
       DbCreate create = rethinkDB.dbCreate(this.databaseName);
       create.run(connection);
     }
+    if (null != this.username) {
+      this.database.grant(this.username,
+          rethinkDB.hashMap()
+              .with("read", true)
+              .with("write", true)
+              .with("config", true)
+      ).run(this.connection);
+    }
+
     Result<List> tableList = this.database.tableList().run(this.connection, List.class);
     List<String> tables = tableList.first();
     if (!tables.contains(RethinkDBSinkConnectorConfig.OFFSETS_TABLE_DEFAULT)) {
@@ -103,6 +132,16 @@ public class RethinkDBSinkTaskIT {
       tableCreate.run(connection);
     }
     this.offsetsTable = this.database.table(RethinkDBSinkConnectorConfig.OFFSETS_TABLE_DEFAULT);
+
+    Map<String, String> settings = new LinkedHashMap<>();
+    settings.put(RethinkDBConnectorConfig.CONNECTION_HOSTNAME_CONF, socketAddress.getHostString());
+    settings.put(RethinkDBConnectorConfig.CONNECTION_PORT_CONF, Integer.toString(socketAddress.getPort()));
+    settings.put(RethinkDBConnectorConfig.DATABASE_CONF, this.databaseName);
+    if (null != this.username) {
+      settings.put(RethinkDBConnectorConfig.USERNAME_CONF, this.username);
+      settings.put(RethinkDBConnectorConfig.PASSWORD_CONF, this.password);
+    }
+    this.settings = settings(settings);
   }
 
   @Test
@@ -128,26 +167,14 @@ public class RethinkDBSinkTaskIT {
     this.offsetsTable.insert(offsets).run(this.connection);
     log.info("offsets = {}", offsets);
 
-    this.task.start(
-        ImmutableMap.of(
-            RethinkDBConnectorConfig.CONNECTION_HOSTNAME_CONF, socketAddress.getHostString(),
-            RethinkDBConnectorConfig.CONNECTION_PORT_CONF, Integer.toString(socketAddress.getPort()),
-            RethinkDBConnectorConfig.DATABASE_CONF, this.databaseName
-        )
-    );
+    this.task.start(this.settings);
 
     verify(this.context, times(1)).offset(expectedOffsets);
   }
 
   @Test
   public void doWrite(@Port(container = "rethink", internalPort = 28015) InetSocketAddress socketAddress) {
-    this.task.start(
-        ImmutableMap.of(
-            RethinkDBConnectorConfig.CONNECTION_HOSTNAME_CONF, socketAddress.getHostString(),
-            RethinkDBConnectorConfig.CONNECTION_PORT_CONF, Integer.toString(socketAddress.getPort()),
-            RethinkDBConnectorConfig.DATABASE_CONF, this.databaseName
-        )
-    );
+    this.task.start(this.settings);
     String topic = "doWrite";
     Schema valueSchema = SchemaBuilder.struct()
         .field("id", Schema.INT32_SCHEMA)
@@ -211,13 +238,7 @@ public class RethinkDBSinkTaskIT {
 
   @Test
   public void writeAndDelete(@Port(container = "rethink", internalPort = 28015) InetSocketAddress socketAddress) {
-    this.task.start(
-        ImmutableMap.of(
-            RethinkDBConnectorConfig.CONNECTION_HOSTNAME_CONF, socketAddress.getHostString(),
-            RethinkDBConnectorConfig.CONNECTION_PORT_CONF, Integer.toString(socketAddress.getPort()),
-            RethinkDBConnectorConfig.DATABASE_CONF, this.databaseName
-        )
-    );
+    this.task.start(this.settings);
     String topic = "writeAndDelete";
     Schema valueSchema = SchemaBuilder.struct()
         .field("id", Schema.INT64_SCHEMA)
@@ -301,6 +322,7 @@ public class RethinkDBSinkTaskIT {
     Result<Object> getAllResults = missingGetAll.run(this.connection);
     assertTrue(getAllResults.bufferedCount() == 0);
 
+    flushTask(topic, 1, 12341L, topic, 2, 12341L, topic, 3, 12341L);
 
     this.task.flush(
         ImmutableMap.of(
@@ -309,5 +331,32 @@ public class RethinkDBSinkTaskIT {
             new TopicPartition(topic, 3), new OffsetAndMetadata(12341L)
         )
     );
+  }
+
+  private void flushTask(
+      String topic1, int partition1, long offset1,
+      String topic2, int partition2, long offset2,
+      String topic3, int partition3, long offset3) {
+    Map<TopicPartition, OffsetAndMetadata> flushedOffsets = new LinkedHashMap<>();
+    flushedOffsets.put(
+        new TopicPartition(topic1, partition1), new OffsetAndMetadata(offset1)
+    );
+    flushedOffsets.put(
+        new TopicPartition(topic2, partition2), new OffsetAndMetadata(offset2)
+    );
+    flushedOffsets.put(
+        new TopicPartition(topic3, partition3), new OffsetAndMetadata(offset3)
+    );
+    this.task.flush(flushedOffsets);
+
+    flushedOffsets.forEach((expectedKey, expectedValue) -> {
+      String topicPartitionKey = RethinkDBSinkTask.topicPartitionKey(expectedKey);
+      Result<MapObject> result = this.task.offsetsTable.get(topicPartitionKey).run(this.task.connection, MapObject.class);
+      MapObject actual = result.first();
+      assertNotNull(actual, String.format("Should have found a result for %s", topicPartitionKey));
+      assertEquals(expectedKey.topic(), actual.get("topic"), String.format("topic does not match. key:%s", topicPartitionKey));
+      assertEquals((long) expectedKey.partition(), (long) actual.get("partition"), String.format("partition does not match. key:%s", topicPartitionKey));
+      assertEquals((long) expectedValue.offset(), (long) actual.get("offset"), String.format("offset does not match. key:%s", topicPartitionKey));
+    });
   }
 }

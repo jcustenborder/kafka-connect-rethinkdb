@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 @Title("RethinkDB")
-@Introduction("This project provides a plugin for interacting with RethinkDB.")
+@Introduction("This project provides a plugin for integration with RethinkDB.")
 @PluginOwner("jcustenborder")
 @PluginName("kafka-connect-rethinkdb")
 package com.github.jcustenborder.kafka.connect.rethinkdb;

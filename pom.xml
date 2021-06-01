@@ -29,7 +29,7 @@
     <artifactId>kafka-connect-rethinkdb</artifactId>
     <version>0.1-SNAPSHOT</version>
     <name>kafka-connect-rethinkdb</name>
-    <description>A Kafka Connect connector receiving data from example.</description>
+    <description>A Kafka Connect plugin for integrating with RethinkDB.</description>
     <url>https://github.com/jcustenborder/kafka-connect-rethinkdb</url>
     <inceptionYear>2020</inceptionYear>
     <licenses>
