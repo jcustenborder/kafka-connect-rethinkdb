@@ -22,6 +22,7 @@ import com.rethinkdb.gen.ast.Delete;
 import com.rethinkdb.gen.ast.Insert;
 import com.rethinkdb.model.MapObject;
 import com.rethinkdb.net.Connection;
+import com.rethinkdb.net.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -146,13 +147,11 @@ public class SinkOperations {
     @Override
     public void execute(Connection connection) {
       Object[] keys = this.values.toArray();
-      for (Object key : keys) {
-        Delete delete = this.tableState.table.filter(RethinkDB.r.hashMap(this.tableState.primaryKey, key))
-            .optArg("durability", "hard")
-            .delete();
-        log.trace("execute() - delete = '{}'", delete);
-        delete.runNoReply(connection);
-      }
+      Delete delete = this.tableState.table.getAll(keys)
+          .delete();
+      log.trace("execute() delete:\n{}", delete);
+      Result<Object> result = delete.run(connection);
+      log.trace("execute() - result = {}", result);
     }
   }
 }

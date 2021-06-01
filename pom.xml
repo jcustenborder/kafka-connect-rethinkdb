@@ -64,55 +64,11 @@
         <dependency>
             <groupId>com.rethinkdb</groupId>
             <artifactId>rethinkdb-driver</artifactId>
-            <version>2.4.2</version>
+            <version>2.4.4</version>
         </dependency>
     </dependencies>
     <build>
         <plugins>
-            <plugin>
-                <groupId>com.github.spotbugs</groupId>
-                <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>4.0.0</version>
-                <dependencies>
-                    <!-- overwrite dependency on spotbugs if you want to specify the version of spotbugs -->
-                    <dependency>
-                        <groupId>com.github.spotbugs</groupId>
-                        <artifactId>spotbugs</artifactId>
-                        <version>4.0.1</version>
-                    </dependency>
-                </dependencies>
-                <executions>
-                    <execution>
-                        <id>spotbugs</id>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                        <phase>compile</phase>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>com.github.jcustenborder.maven.plugins</groupId>
-                <artifactId>kafka-connect-maven-plugin</artifactId>
-                <version>0.1.2</version>
-                <executions>
-                    <execution>
-                        <id>generate-config</id>
-                        <goals>
-                            <goal>generate-config-classes</goal>
-                        </goals>
-                        <phase>generate-sources</phase>
-                        <configuration>
-                            <includeFiles>
-                                <includeFile>src/main/connect-config-classes/*.json</includeFile>
-                            </includeFiles>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-
-            <!--
-            Uncomment to prepare a package for the Confluent Hub.
             <plugin>
                 <groupId>io.confluent</groupId>
                 <artifactId>kafka-connect-maven-plugin</artifactId>
@@ -124,12 +80,11 @@
                         <componentType>sink</componentType>
                     </componentTypes>
                     <tags>
-                        <tag>Redis</tag>
+                        <tag>RethinkDB</tag>
                     </tags>
-                    <title>Kafka Connect Redis</title>
+                    <title>Kafka Connect ReThinkDB</title>
                 </configuration>
             </plugin>
-            -->
         </plugins>
     </build>
 </project>
